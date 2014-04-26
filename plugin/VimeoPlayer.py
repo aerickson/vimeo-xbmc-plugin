@@ -30,10 +30,6 @@ except ImportError: import json
 
 class VimeoPlayer():
 
-    # Vimeo Playback Feeds
-    urls = {}
-    urls['embed_stream'] = "http://player.vimeo.com/play_redirect?clip_id=%s&sig=%s&time=%s&quality=%s&codecs=H264,VP8,VP6&type=moogaloop_local&embed_location="
-
     def __init__(self):
         self.xbmc = sys.modules["__main__"].xbmc
         self.xbmcgui = sys.modules["__main__"].xbmcgui
@@ -72,13 +68,10 @@ class VimeoPlayer():
 
     def scrapeVideoInfo(self, params):
         get = params.get
-        result = self.common.fetchPage({"link": "http://www.vimeo.com/%s" % get("videoid")})
+        result = self.common.fetchPage({"link": "http://player.vimeo.com/v2/video/%s/config" % get("videoid")})
         collection = {}
         if result["status"] == 200:
             html = result["content"]
-            html = html[html.find('{config:{'):]
-            html = html[:html.find('}}},') + 3]
-            html = html.replace("{config:{", '{"config":{') + "}"
             print repr(html)
             collection = json.loads(html)
         return collection
@@ -90,25 +83,28 @@ class VimeoPlayer():
         collection = self.scrapeVideoInfo(params)
 
         video = {}
-        if collection.has_key("config"):
-            video['videoid'] = get("videoid")
-            title = collection["config"]["video"]["title"]
-            if len(title) == 0:
-                title = "No Title"
-            title = self.common.replaceHTMLCodes(title)
-            video['Title'] = title
-            video['Duration'] = collection["config"]["video"]["duration"]
-            video['thumbnail'] = collection["config"]["video"]["thumbnail"]
-            video['Studio'] = collection["config"]["video"]["owner"]["name"]
-            video['request_signature'] = collection["config"]["request"]["signature"]
-            video['request_signature_expires'] = collection["config"]["request"]["timestamp"]
+        video['urls'] = {}
 
-            isHD = collection["config"]["video"]["hd"]
-            if str(isHD) == "1":
+        if collection.has_key("request"):
+            video['videoid'] = get("videoid")
+            for codec in collection["request"]["files"]["codecs"]:
+                for profile in collection["request"]["files"][codec]:
+                    if profile not in video['urls']:
+                        video['urls'][profile] = collection["request"]["files"][codec][profile]
+
+            if "hd" in video['urls']:
                 video['isHD'] = "1"
 
+            video['thumbnail'] = ""
+            video['Title'] = ""
 
-        if len(video) == 0:
+            if collection.has_key("video"):
+                title = collection["video"].get("title", "No Title")
+                title = self.common.replaceHTMLCodes(title)
+                video['Title'] = title
+
+
+        if len(video['urls']) == 0:
             self.common.log("- Couldn't parse API output, Vimeo doesn't seem to know this video id?")
             video = {}
             video["apierror"] = self.language(30608)
@@ -142,13 +138,12 @@ class VimeoPlayer():
             return ("", 500)
 
         quality = self.selectVideoQuality(params, video)
-        
-        if ('apierror' not in video):
-            video_url =  self.urls['embed_stream'] % (get("videoid"), video['request_signature'], video['request_signature_expires'], quality)
-            result = self.common.fetchPage({"link": video_url, "no-content": "true"})
-            print repr(result)
-            video['video_url'] = result["new_url"]
 
+        if ('apierror' not in video):
+            if quality not in video["urls"]:
+                self.common.log("No suitable resolution found")
+                return (self.language(30607), 303)
+            video['video_url'] = video["urls"][quality]["url"]
             self.common.log("Done")
             return (video, 200)
         else:
