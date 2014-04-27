@@ -63,7 +63,6 @@ class VimeoLogin():
         self.settings.setSetting("userid", "")
         self.settings.setSetting("oauth_token_secret", "")
         self.settings.setSetting("oauth_token", "")
-        self.settings.setSetting("cookie", "")
 
         self.v.get_request_token()
         (result, status) = self.login_get_verifier(self.v.get_authorization_url("write"))
@@ -169,11 +168,7 @@ class VimeoLogin():
     def extractLoginTokens(self, auth_url):
         self.common.log("")
         result = self.common.fetchPage({"link": auth_url})
-        if "Set-Cookie" in result["header"]:
-            match = re.match('vimeo=([^;]+);', result["header"]["Set-Cookie"])
-            if match:
-                self.common.log("cookie: " + repr(match.group(1)))
-                self.settings.setSetting("cookie", match.group(1))
+        sys.modules["__main__"].cookiejar.save()
         login_oauth_token = self.common.parseDOM(result["content"], "input", attrs={"type": "hidden", "name": "oauth_token"} , ret="value")
         login_token = self.common.parseDOM(result["content"], "input",  attrs={"type": "hidden", "id": "token", "name": "token"}, ret="value")
 

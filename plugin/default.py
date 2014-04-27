@@ -1,3 +1,4 @@
+import os.path
 import sys
 import xbmc
 import xbmcaddon
@@ -33,14 +34,18 @@ common = ""
 download = ""
 player = ""
 
-cookiejar = cookielib.LWPCookieJar()
+path = xbmc.translatePath(settings.getAddonInfo("profile"))
+path = os.path.join(path, 'cookiejar.txt')
+cookiejar = cookielib.LWPCookieJar(path)
+
+if xbmcvfs.exists(path):
+    try:
+        cookiejar.load()
+    except:
+        pass
+
 opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookiejar))
 urllib2.install_opener(opener)
-
-cookie = settings.getSetting("cookie")
-if len(cookie) > 0:
-    ck = cookielib.Cookie(version=0, name='vimeo', value=cookie, port=None, port_specified=False, domain='.vimeo.com', domain_specified=True, domain_initial_dot=True, path='/', path_specified=True, secure=False, expires=None, discard=False, comment=None, comment_url=None, rest={}, rfc2109=False)
-    cookiejar.set_cookie(ck)
 
 if (__name__ == "__main__" ):
     if dbg:
