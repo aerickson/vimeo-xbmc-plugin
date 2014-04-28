@@ -463,7 +463,7 @@ class VimeoNavigation():
             cm.append((self.language(30530), "XBMC.RunPlugin(%s?path=%s&action=add_watch_later&videoid=%s)" % (sys.argv[0], get("path"), item("videoid"))))
 
         cm.append((self.language(30500), "XBMC.RunPlugin(%s?path=%s&action=download&videoid=%s)" % (sys.argv[0], get("path"), item("videoid"))))
-        cm.append((self.language(30507), "XBMC.Container.Update(%s?path=%s&action=search&search=%s)" % (sys.argv[0], get("path"), urllib.quote_plus(self.common.makeAscii(title)))))
+        cm.append((self.language(30507), "XBMC.Container.Update(%s?path=%s&api=search&search=%s)" % (sys.argv[0], get("path"), urllib.quote_plus(self.common.makeAscii(title)))))
         cm.append((self.language(30502), "XBMC.Action(Queue)",))
         cm.append((self.language(30501), "XBMC.Action(Info)",))
 
