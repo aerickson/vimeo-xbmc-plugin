@@ -64,6 +64,10 @@ class VimeoPlayer():
         self.common.log("Playing video: " + video['Title'] + " - " + get('videoid') + " - " + video['video_url'])
 
         self.xbmcplugin.setResolvedUrl(handle=int(sys.argv[1]), succeeded=True, listitem=listitem)
+
+        if video.has_key('subs'):
+            self.addSubtitles(video['subs'])
+
         self.storage.storeValue("vidstatus-" + get('videoid'), "7")
 
     def scrapeVideoInfo(self, params):
@@ -94,6 +98,14 @@ class VimeoPlayer():
 
             if "hd" in video['urls']:
                 video['isHD'] = "1"
+
+            if collection["request"].has_key("text_tracks"):
+                video['subs'] = {}
+                for sub in collection["request"]["text_tracks"]:
+                    url = urllib.unquote_plus(sub['url'])
+                    i = url.find("http://")
+                    if i != -1:
+                        video['subs'][sub['lang']] = url[i:]
 
             video['thumbnail'] = ""
             video['Title'] = ""
@@ -196,3 +208,20 @@ class VimeoPlayer():
                 return quality
         
         return "sd"
+
+    def addSubtitles(self, subs={}):
+        if len(subs) == 0:
+            return
+
+        player = self.xbmc.Player()
+
+        i = 0
+        while not player.isPlaying():
+            i += 1
+            self.common.log(u"Waiting for playback to start ")
+            time.sleep(1)
+            if i > 10:
+                break
+
+        player.setSubtitles(subs['en'])
+        player.showSubtitles(False)
