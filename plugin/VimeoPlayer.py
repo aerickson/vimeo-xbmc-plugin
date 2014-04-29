@@ -213,6 +213,9 @@ class VimeoPlayer():
         if len(subs) == 0:
             return
 
+        if not subs.has_key('en'):
+            return
+
         player = self.xbmc.Player()
 
         i = 0
