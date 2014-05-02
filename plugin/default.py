@@ -34,9 +34,12 @@ common = ""
 download = ""
 player = ""
 
+# load cookies from file
+# note that MozillaCookieJar is used instead of LWPCookieJar because of bug described here:
+# http://bugs.python.org/issue5537
 path = xbmc.translatePath(settings.getAddonInfo("profile"))
 path = os.path.join(path, 'cookiejar.txt')
-cookiejar = cookielib.LWPCookieJar(path)
+cookiejar = cookielib.MozillaCookieJar(path)
 
 if xbmcvfs.exists(path):
     try:
