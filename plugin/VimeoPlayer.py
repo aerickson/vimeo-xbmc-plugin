@@ -83,7 +83,8 @@ class VimeoPlayer():
         #     print repr(html)
         #     collection = json.loads(html)
 
-        collection = json.loads(commands.getstatusoutput('youtube-dl https://vimeo.com/%s' % get("videoid")))
+        (status, output) = commands.getstatusoutput('youtube-dl https://vimeo.com/%s' % get("videoid"))
+        collection = json.loads(output)
         return collection
 
     def getVideoInfo(self, params):
@@ -94,7 +95,7 @@ class VimeoPlayer():
 
         video = {}
         if collection.has_key("id"):
-            video['videoid'] = get("id")
+            video['videoid'] = collection["id"]
             title = collection["title"]
             if len(title) == 0:
                 title = "No Title"
@@ -102,14 +103,14 @@ class VimeoPlayer():
             video['Title'] = title
             video['Duration'] = collection["duration"]
             video['thumbnail'] = collection["thumbnail"]
-            video['Studio'] = collection["uploader"
+            video['Studio'] = collection["uploader"]
+            video["video_url"] = collection["formats"][0][-1]["url"]
             # video['request_signature'] = collection["config"]["request"]["signature"]
             # video['request_signature_expires'] = collection["config"]["request"]["timestamp"]
 
             # isHD = collection["config"]["video"]["hd"]
             # if str(isHD) == "1":
             #     video['isHD'] = "1"
-
 
         if len(video) == 0:
             self.common.log("- Couldn't parse API output, Vimeo doesn't seem to know this video id?")
@@ -151,7 +152,10 @@ class VimeoPlayer():
             # video_url =  self.urls['embed_stream'] % (get("videoid"), video['request_signature'], video['request_signature_expires'], quality)
             # result = self.common.fetchPage({"link": video_url, "no-content": "true"})
             # print repr(result)
-            video['video_url'] = video["formats"][-1]["url"]
+
+            #print repr(video)
+            #video['video_url'] = video["formats"][-1]["url"]
+            # already set...
 
             self.common.log("Done")
             return (video, 200)
