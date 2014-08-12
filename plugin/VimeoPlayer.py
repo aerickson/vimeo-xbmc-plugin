@@ -73,20 +73,12 @@ class VimeoPlayer():
 
     def scrapeVideoInfo(self, params):
         get = params.get
-        # result = self.common.fetchPage({"link": "http://www.vimeo.com/%s" % get("videoid")})
-        # collection = {}
-        # if result["status"] == 200:
-        #     html = result["content"]
-        #     html = html[html.find('{config:{'):]
-        #     html = html[:html.find('}}},') + 3]
-        #     html = html.replace("{config:{", '{"config":{') + "}"
-        #     print repr(html)
-        #     collection = json.loads(html)
-
-        command = '/home/aje/bin/youtube-dl -jq https://vimeo.com/%s' % get("videoid")
-        print command
+        # currently requires latest from https://github.com/rg3/youtube-dl
+        # - apt version is too old...
+        command = 'youtube-dl -jq https://vimeo.com/%s' % get("videoid")
+        #print command
         (status, output) = commands.getstatusoutput(command)
-        print output
+        #print output
         collection = json.loads(output)
         return collection
 
@@ -108,17 +100,14 @@ class VimeoPlayer():
             video['Duration'] = collection["duration"]
             video['thumbnail'] = collection["thumbnail"]
             video['Studio'] = collection["uploader"]
+            # TODO: don't force the highest quality version...
             video['video_url'] = collection["formats"][-1]['url']
-            print video['video_url']
-            # video['request_signature'] = collection["config"]["request"]["signature"]
-            # video['request_signature_expires'] = collection["config"]["request"]["timestamp"]
 
             # isHD = collection["config"]["video"]["hd"]
             # if str(isHD) == "1":
             #     video['isHD'] = "1"
 
-
-        print repr(video)
+        #print repr(video)
 
         if len(video) == 0:
             self.common.log("- Couldn't parse API output, Vimeo doesn't seem to know this video id?")
