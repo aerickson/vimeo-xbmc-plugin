@@ -21,6 +21,7 @@ import urllib
 import re
 import os.path
 import datetime
+import commands
 import time
 from xml.dom.minidom import parseString
 
@@ -44,7 +45,7 @@ class VimeoPlayer():
         self.language = sys.modules["__main__"].language
         self.plugin = sys.modules["__main__"].plugin
         self.dbg = sys.modules["__main__"].dbg
-        
+
         self.common = sys.modules["__main__"].common
         self.utils = sys.modules["__main__"].utils
         self.cache = sys.modules["__main__"].cache
@@ -72,15 +73,17 @@ class VimeoPlayer():
 
     def scrapeVideoInfo(self, params):
         get = params.get
-        result = self.common.fetchPage({"link": "http://www.vimeo.com/%s" % get("videoid")})
-        collection = {}
-        if result["status"] == 200:
-            html = result["content"]
-            html = html[html.find('{config:{'):]
-            html = html[:html.find('}}},') + 3]
-            html = html.replace("{config:{", '{"config":{') + "}"
-            print repr(html)
-            collection = json.loads(html)
+        # result = self.common.fetchPage({"link": "http://www.vimeo.com/%s" % get("videoid")})
+        # collection = {}
+        # if result["status"] == 200:
+        #     html = result["content"]
+        #     html = html[html.find('{config:{'):]
+        #     html = html[:html.find('}}},') + 3]
+        #     html = html.replace("{config:{", '{"config":{') + "}"
+        #     print repr(html)
+        #     collection = json.loads(html)
+
+        collection = json.loads(commands.getstatusoutput('youtube-dl https://vimeo.com/%s' % get("videoid")))
         return collection
 
     def getVideoInfo(self, params):
@@ -90,22 +93,22 @@ class VimeoPlayer():
         collection = self.scrapeVideoInfo(params)
 
         video = {}
-        if collection.has_key("config"):
-            video['videoid'] = get("videoid")
-            title = collection["config"]["video"]["title"]
+        if collection.has_key("id"):
+            video['videoid'] = get("id")
+            title = collection["title"]
             if len(title) == 0:
                 title = "No Title"
             title = self.common.replaceHTMLCodes(title)
             video['Title'] = title
-            video['Duration'] = collection["config"]["video"]["duration"]
-            video['thumbnail'] = collection["config"]["video"]["thumbnail"]
-            video['Studio'] = collection["config"]["video"]["owner"]["name"]
-            video['request_signature'] = collection["config"]["request"]["signature"]
-            video['request_signature_expires'] = collection["config"]["request"]["timestamp"]
+            video['Duration'] = collection["duration"]
+            video['thumbnail'] = collection["thumbnail"]
+            video['Studio'] = collection["uploader"
+            # video['request_signature'] = collection["config"]["request"]["signature"]
+            # video['request_signature_expires'] = collection["config"]["request"]["timestamp"]
 
-            isHD = collection["config"]["video"]["hd"]
-            if str(isHD) == "1":
-                video['isHD'] = "1"
+            # isHD = collection["config"]["video"]["hd"]
+            # if str(isHD) == "1":
+            #     video['isHD'] = "1"
 
 
         if len(video) == 0:
@@ -120,7 +123,7 @@ class VimeoPlayer():
     def getVideoObject(self, params):
         self.common.log("")
         get = params.get
-        
+
         (video, status) = self.getVideoInfo(params)
 
         #Check if file has been downloaded locally and use that as a source instead
@@ -141,13 +144,14 @@ class VimeoPlayer():
             self.common.log("getVideoObject failed because of missing video from getVideoInfo")
             return ("", 500)
 
-        quality = self.selectVideoQuality(params, video)
-        
+        # TODO: handle this... for now use first or HD?
+        # quality = self.selectVideoQuality(params, video)
+
         if ('apierror' not in video):
-            video_url =  self.urls['embed_stream'] % (get("videoid"), video['request_signature'], video['request_signature_expires'], quality)
-            result = self.common.fetchPage({"link": video_url, "no-content": "true"})
-            print repr(result)
-            video['video_url'] = result["new_url"]
+            # video_url =  self.urls['embed_stream'] % (get("videoid"), video['request_signature'], video['request_signature_expires'], quality)
+            # result = self.common.fetchPage({"link": video_url, "no-content": "true"})
+            # print repr(result)
+            video['video_url'] = video["formats"][-1]["url"]
 
             self.common.log("Done")
             return (video, 200)
@@ -155,49 +159,49 @@ class VimeoPlayer():
             self.common.log("Got apierror: " + video['apierror'])
             return (video['apierror'], 303)
 
-    def selectVideoQuality(self, params, video):
-        self.common.log("" + repr(params) + " - " + repr(video))
-        get = params.get
-        vget = video.get
-
-        quality = "sd"
-        hd_quality = 0
-        
-        if get("action") == "download":
-            hd_quality = int(self.settings.getSetting("hd_videos_download"))
-            if (hd_quality == 0):
-                hd_quality = int(self.settings.getSetting("hd_videos"))
-        else:
-            if (not get("quality")):
-                hd_quality = int(self.settings.getSetting("hd_videos"))
-            else:
-                if (get("quality") == "720p"):
-                    hd_quality = 2
-                else:
-                    hd_quality = 1
-
-        if (hd_quality > 1 and vget("isHD", "0") == "1"):
-            quality = "hd"
-        
-        if hd_quality == 0 and not get("quality") and vget("isHD", "0") == "1":
-            return self.userSelectsVideoQuality(params)
-
-        self.common.log("Done")
-        return quality
-
-    def userSelectsVideoQuality(self, params):
-        items = [("hd", "720p"),("sd", "SD")]
-        choices = []
-                
-        if len(items) > 1:             
-            for (quality, message) in items:
-                choices.append(message)
-    
-            dialog = self.xbmcgui.Dialog()
-            selected = dialog.select(self.language(30518), choices)
-
-            if selected > -1:
-                (quality, message) = items[selected]
-                return quality
-        
-        return "sd"
+    # def selectVideoQuality(self, params, video):
+    #     self.common.log("" + repr(params) + " - " + repr(video))
+    #     get = params.get
+    #     vget = video.get
+    #
+    #     quality = "sd"
+    #     hd_quality = 0
+    #
+    #     if get("action") == "download":
+    #         hd_quality = int(self.settings.getSetting("hd_videos_download"))
+    #         if (hd_quality == 0):
+    #             hd_quality = int(self.settings.getSetting("hd_videos"))
+    #     else:
+    #         if (not get("quality")):
+    #             hd_quality = int(self.settings.getSetting("hd_videos"))
+    #         else:
+    #             if (get("quality") == "720p"):
+    #                 hd_quality = 2
+    #             else:
+    #                 hd_quality = 1
+    #
+    #     if (hd_quality > 1 and vget("isHD", "0") == "1"):
+    #         quality = "hd"
+    #
+    #     if hd_quality == 0 and not get("quality") and vget("isHD", "0") == "1":
+    #         return self.userSelectsVideoQuality(params)
+    #
+    #     self.common.log("Done")
+    #     return quality
+    #
+    # def userSelectsVideoQuality(self, params):
+    #     items = [("hd", "720p"),("sd", "SD")]
+    #     choices = []
+    #
+    #     if len(items) > 1:
+    #         for (quality, message) in items:
+    #             choices.append(message)
+    #
+    #         dialog = self.xbmcgui.Dialog()
+    #         selected = dialog.select(self.language(30518), choices)
+    #
+    #         if selected > -1:
+    #             (quality, message) = items[selected]
+    #             return quality
+    #
+    #     return "sd"
