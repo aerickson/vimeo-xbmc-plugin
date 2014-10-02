@@ -63,7 +63,7 @@ class VimeoPlayer():
             return False
 
         listitem = self.xbmcgui.ListItem(label=video['Title'], iconImage=video['thumbnail'], thumbnailImage=video['thumbnail'], path=video['video_url'])
-        listitem.setInfo(type='Video', infoLabels=video)
+        listitem.setInfo('Video', {'infoLabels': 'video'})
 
         self.common.log("Playing video: " + video['Title'] + " - " + get('videoid') + " - " + video['video_url'])
 
